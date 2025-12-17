@@ -157,7 +157,7 @@ class MallListingCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     ...item.groupBuyItems.map(
                       (gbItem) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: 2),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
