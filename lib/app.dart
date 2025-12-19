@@ -41,7 +41,7 @@ class MyApp extends ConsumerWidget {
               if (id != null) {
                 item = MallListingItem(
                   id: id,
-                  imageUrl: '',
+                  imageUrl: 'https://picsum.photos/seed/native_$id/800/600',
                   title: '来自原生的商品 $id',
                   score: 0,
                   scoreText: '暂无评分',

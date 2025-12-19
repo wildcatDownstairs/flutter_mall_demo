@@ -227,8 +227,10 @@ class MallPage extends HookWidget {
                   if (listData.value.isEmpty) {
                     return const Center(child: Text('暂无数据'));
                   }
+                  final bottomPadding = MediaQuery.of(context).padding.bottom;
                   return ListView.separated(
                     controller: scrollController,
+                    padding: EdgeInsets.only(bottom: bottomPadding),
                     itemCount: listData.value.length + 1,
                     separatorBuilder: (context, index) =>
                         Container(height: 1, color: const Color(0xFFF5F5F5)),
