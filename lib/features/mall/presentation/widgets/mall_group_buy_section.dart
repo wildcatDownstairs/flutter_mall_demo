@@ -13,6 +13,10 @@ class MallGroupBuySection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (packages.isEmpty) return const SizedBox.shrink();
 
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final cacheWidth = (140 * dpr).round();
+    final cacheHeight = (100 * dpr).round();
+
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -55,7 +59,10 @@ class MallGroupBuySection extends StatelessWidget {
                                   imageUrl: item.imageUrl,
                                   width: 140,
                                   height: 100,
+                                  memCacheWidth: cacheWidth,
+                                  memCacheHeight: cacheHeight,
                                   fit: BoxFit.cover,
+                                  filterQuality: FilterQuality.low,
                                   placeholder: (context, url) =>
                                       Container(color: Colors.grey[200]),
                                 ),

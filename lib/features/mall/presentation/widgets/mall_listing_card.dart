@@ -11,6 +11,8 @@ class MallListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final imageCacheSize = (100 * dpr).round();
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(12),
@@ -31,7 +33,10 @@ class MallListingCard extends StatelessWidget {
                     imageUrl: item.imageUrl,
                     width: 100,
                     height: 100,
+                    memCacheWidth: imageCacheSize,
+                    memCacheHeight: imageCacheSize,
                     fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
                     placeholder: (context, url) =>
                         Container(color: Colors.grey[200]),
                     errorWidget: (context, url, error) => Container(

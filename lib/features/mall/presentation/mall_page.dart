@@ -14,6 +14,41 @@ import 'package:go_router/go_router.dart';
 
 const _nativeChannel = MethodChannel('mall_demo_native');
 
+const _groupBuyPackages = [
+  GroupBuyPackage(
+    id: 'gb1',
+    imageUrl: 'https://picsum.photos/seed/gb1/280/200',
+    title: '【错峰游】丹霞山燕子呢喃民宿',
+    price: 421.3,
+    originalPrice: 901,
+    tag: '超值券膨胀',
+  ),
+  GroupBuyPackage(
+    id: 'gb2',
+    imageUrl: 'https://picsum.photos/seed/gb2/280/200',
+    title: '三亚海边民宿1晚',
+    price: 40,
+    originalPrice: 199,
+    tag: '超值券 减10',
+  ),
+  GroupBuyPackage(
+    id: 'gb3',
+    imageUrl: 'https://picsum.photos/seed/gb3/280/200',
+    title: '小象民宿【银基动物王国、冰雪世...',
+    price: 219,
+    originalPrice: 598,
+    tag: '3.7折',
+  ),
+  GroupBuyPackage(
+    id: 'gb4',
+    imageUrl: 'https://picsum.photos/seed/gb4/280/200',
+    title: '雪乡梦幻家园',
+    price: 888,
+    originalPrice: 1288,
+    tag: '热销',
+  ),
+];
+
 class MallPage extends HookWidget {
   const MallPage({super.key});
 
@@ -24,16 +59,24 @@ class MallPage extends HookWidget {
       () => RefreshController(initialRefresh: false),
     );
     final scrollController = useScrollController();
-    final page = useState(1);
+    final page = useRef(1);
     final listData = useState<List<MallListingItem>>([]);
-    final hasMore = useState(true);
-    final isAutoLoading = useState(false);
-    final currentSort = useState<SortOption>(SortOption.smart);
-    final currentCity = useState<String>('全城');
-    final currentStars = useState<List<String>>([]);
+    final hasMore = useRef(true);
+    final isAutoLoading = useRef(false);
+    final currentSort = useRef<SortOption>(SortOption.smart);
+    final currentCity = useRef<String>('全城');
+    final currentStars = useRef<List<String>>([]);
 
-    final lastScrollOffset = useState(0.0);
-    final isTabBarHidden = useState(false);
+    final lastScrollOffset = useRef(0.0);
+    final isTabBarHidden = useRef(false);
+    final lastToggleMs = useRef(0);
+    final lastToggleOffset = useRef(0.0);
+
+    useEffect(() {
+      _nativeChannel.invokeMethod<void>('showTabBar');
+      isTabBarHidden.value = false;
+      return null;
+    }, const []);
 
     // useRequest for data fetching
     final request = useRequest<List<MallListingItem>, Map<String, int>>(
@@ -83,11 +126,21 @@ class MallPage extends HookWidget {
         lastScrollOffset.value = offset;
 
         const threshold = 6.0;
-        if (delta > threshold && !isTabBarHidden.value) {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final distanceSinceToggle =
+            (offset - lastToggleOffset.value).abs();
+        final canToggle =
+            nowMs - lastToggleMs.value > 180 && distanceSinceToggle > 24;
+
+        if (delta > threshold && !isTabBarHidden.value && canToggle) {
           isTabBarHidden.value = true;
+          lastToggleMs.value = nowMs;
+          lastToggleOffset.value = offset;
           _nativeChannel.invokeMethod<void>('hideTabBar');
-        } else if (delta < -threshold && isTabBarHidden.value) {
+        } else if (delta < -threshold && isTabBarHidden.value && canToggle) {
           isTabBarHidden.value = false;
+          lastToggleMs.value = nowMs;
+          lastToggleOffset.value = offset;
           _nativeChannel.invokeMethod<void>('showTabBar');
         }
 
@@ -103,43 +156,7 @@ class MallPage extends HookWidget {
       return () {
         scrollController.removeListener(listener);
       };
-    }, [scrollController, hasMore.value, page.value]);
-
-    // Mock Group Buy Packages (Static for now, could also be fetched)
-    final groupBuyPackages = [
-      const GroupBuyPackage(
-        id: 'gb1',
-        imageUrl: 'https://picsum.photos/seed/gb1/280/200',
-        title: '【错峰游】丹霞山燕子呢喃民宿',
-        price: 421.3,
-        originalPrice: 901,
-        tag: '超值券膨胀',
-      ),
-      const GroupBuyPackage(
-        id: 'gb2',
-        imageUrl: 'https://picsum.photos/seed/gb2/280/200',
-        title: '三亚海边民宿1晚',
-        price: 40,
-        originalPrice: 199,
-        tag: '超值券 减10',
-      ),
-      const GroupBuyPackage(
-        id: 'gb3',
-        imageUrl: 'https://picsum.photos/seed/gb3/280/200',
-        title: '小象民宿【银基动物王国、冰雪世...',
-        price: 219,
-        originalPrice: 598,
-        tag: '3.7折',
-      ),
-      const GroupBuyPackage(
-        id: 'gb4',
-        imageUrl: 'https://picsum.photos/seed/gb4/280/200',
-        title: '雪乡梦幻家园',
-        price: 888,
-        originalPrice: 1288,
-        tag: '热销',
-      ),
-    ];
+    }, [scrollController]);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -199,8 +216,10 @@ class MallPage extends HookWidget {
               ),
               onRefresh: () =>
                   request.run(const {'page': 1, 'pageSize': 20}),
-              onLoading: () =>
-                  request.run({'page': page.value + 1, 'pageSize': 20}),
+              onLoading: () {
+                isAutoLoading.value = true;
+                request.run({'page': page.value + 1, 'pageSize': 20});
+              },
               child: Builder(
                 builder: (context) {
                   if (request.loading && listData.value.isEmpty) {
@@ -236,8 +255,10 @@ class MallPage extends HookWidget {
                         Container(height: 1, color: const Color(0xFFF5F5F5)),
                     itemBuilder: (context, index) {
                       if (index == 1) {
-                        return MallGroupBuySection(
-                          packages: groupBuyPackages,
+                        return const RepaintBoundary(
+                          child: MallGroupBuySection(
+                            packages: _groupBuyPackages,
+                          ),
                         );
                       }
                       final itemIndex = index > 1 ? index - 1 : index;
@@ -245,10 +266,12 @@ class MallPage extends HookWidget {
                         return const SizedBox();
                       }
                       final item = listData.value[itemIndex];
-                      return InkWell(
-                        onTap: () =>
-                            context.push('/detail/${item.id}', extra: item),
-                        child: MallListingCard(item: item),
+                      return RepaintBoundary(
+                        child: InkWell(
+                          onTap: () =>
+                              context.push('/detail/${item.id}', extra: item),
+                          child: MallListingCard(item: item),
+                        ),
                       );
                     },
                   );
