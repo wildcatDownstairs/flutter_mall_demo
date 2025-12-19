@@ -54,6 +54,10 @@ dependencies:
   # 网络请求
   dio: ^5.8.0
   use_request: ^0.0.4
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+  image_picker: ^1.2.1
+  reorderable_grid_view: ^2.2.8
 
 dev_dependencies:
   flutter_test:

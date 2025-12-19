@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_mall_demo/core/utils/format.dart';
 import '../models/mall_entity.dart';
 
@@ -15,6 +16,8 @@ class MallDetailPage extends StatefulWidget {
 
 class _MallDetailPageState extends State<MallDetailPage>
     with SingleTickerProviderStateMixin {
+  static const _nativeChannel = MethodChannel('mall_demo_native');
+
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
@@ -65,6 +68,43 @@ class _MallDetailPageState extends State<MallDetailPage>
     );
   }
 
+  Future<void> _handleBack() async {
+    try {
+      final payload = <String, dynamic>{
+        'message': '从 Flutter 详情页返回',
+        'lines': <String>[
+          'id: ${widget.item.id}',
+          'title: ${widget.item.title}',
+          'time: ${DateTime.now().toIso8601String()}',
+          'route: /detail/${widget.item.id}',
+        ],
+      };
+      await _nativeChannel.invokeMethod<void>(
+        'popAndShowNativeDialog',
+        payload,
+      );
+      return;
+    } catch (e) {
+      debugPrint('Error invoking native method: $e');
+      try {
+        await _nativeChannel.invokeMethod<void>(
+          'showNativeDialog',
+          <String, dynamic>{'message': '从 Flutter 详情页返回'},
+        );
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    if (!mounted) return;
+
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      SystemNavigator.pop();
+    }
+  }
+
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 280,
@@ -75,20 +115,17 @@ class _MallDetailPageState extends State<MallDetailPage>
       systemOverlayStyle: _showTitle
           ? SystemUiOverlayStyle.dark
           : SystemUiOverlayStyle.light,
-      leading: Container(
-        margin: const EdgeInsets.only(left: 12),
-        child: CircleAvatar(
-          backgroundColor: const Color(0x4D000000),
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Colors.white,
-              size: 20,
-            ),
-            onPressed: () => Navigator.pop(context),
+      leading: Center(
+        child: GestureDetector(
+          onTap: _handleBack,
+          child: const CircleAvatar(
+            backgroundColor: Color(0x4D000000),
+            radius: 18,
+            child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
           ),
         ),
       ),
+      automaticallyImplyLeading: false,
       title: _showTitle
           ? Text(
               widget.item.title,
@@ -600,6 +637,27 @@ class _MallDetailPageState extends State<MallDetailPage>
     );
   }
 
+  /// 点击“预订”时，调用原生弹出 LiquidGlassDialogViewController。
+  Future<void> _handleBookPressed() async {
+    final title = widget.item.title;
+    final shortTitle = title.length <= 18
+        ? title
+        : '${title.substring(0, 18)}...';
+    final message = '已为您锁定「$shortTitle」的预订权益（演示用）';
+
+    try {
+      await _nativeChannel.invokeMethod<void>(
+        'showNativeDialog',
+        <String, dynamic>{'message': message},
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('原生弹窗通道未就绪')));
+    }
+  }
+
   Widget _buildDateAndFilter() {
     return SliverToBoxAdapter(
       child: Container(
@@ -1025,21 +1083,24 @@ class _MallDetailPageState extends State<MallDetailPage>
                           ),
                         ),
                       const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF4D4F),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          '预订',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                      GestureDetector(
+                        onTap: _handleBookPressed,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF4D4F),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '预订',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),

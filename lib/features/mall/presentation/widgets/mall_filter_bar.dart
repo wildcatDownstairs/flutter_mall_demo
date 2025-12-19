@@ -66,7 +66,8 @@ class MallFilterBar extends HookWidget {
                     child: ListView.builder(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      itemCount: 18,
+                      // 为提升弹层打开和滚动的流畅度，这里只展示未来 6 个月。
+                      itemCount: 6,
                       itemBuilder: (context, index) {
                         final base = DateTime(
                           firstDate.year,
