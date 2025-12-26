@@ -69,35 +69,6 @@ class _MallDetailPageState extends State<MallDetailPage>
   }
 
   Future<void> _handleBack() async {
-    try {
-      final payload = <String, dynamic>{
-        'message': '从 Flutter 详情页返回',
-        'lines': <String>[
-          'id: ${widget.item.id}',
-          'title: ${widget.item.title}',
-          'time: ${DateTime.now().toIso8601String()}',
-          'route: /detail/${widget.item.id}',
-        ],
-      };
-      await _nativeChannel.invokeMethod<void>(
-        'popAndShowNativeDialog',
-        payload,
-      );
-      return;
-    } catch (e) {
-      debugPrint('Error invoking native method: $e');
-      try {
-        await _nativeChannel.invokeMethod<void>(
-          'showNativeDialog',
-          <String, dynamic>{'message': '从 Flutter 详情页返回'},
-        );
-      } catch (_) {
-        // ignore
-      }
-    }
-
-    if (!mounted) return;
-
     if (context.canPop()) {
       context.pop();
     } else {
